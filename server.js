@@ -9,42 +9,32 @@ const cors = require('cors'),
     jwt = require('jsonwebtoken'),
     passport = require('passport'),
     bodyParser = require('body-parser'),
-    authController = require('./auth'),
     jwtAuthController = require('./auth_jwt'),
     app = express(),
     router = express.Router(),
-    User = require('./Users');
+    User = require('./schemas/Users'),
+    Movie = require('./schemas/Movies'),
+    Actor = require('./schemas/Actors');
 
 app.use(cors());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(passport.initialize());
 
-function getJSONobject(req){
-    const json = {
-        status: 'No Status',
-        msg: 'No Msg Set',
-        headers: 'No Headers',
-        query: 'No Query',
-        key: process.env.UNIQUE_KEY,
-        body: 'No Body'
-    };
+getActors = (req) => {
+    let actorsList = [];
+    let actors = req.body.actors;
 
-    if (req.headers != null){
-        json.headers = req.headers;
-    }
+    if(!actors){return actorsList;}
 
-    if (req.params.query != null){
-        json.query = req.params.query;
-    }
-
-    if (req.body != null){
-        json.body = req.body;
-    }
-
-    return json
+    actors.forEach(obj => {
+        let actor = new Actor();
+        actor.actorName = obj.actorName;
+        actor.characterName = obj.characterName;
+        actorsList.push(actor);
+    })
+    return actorsList;
 }
-
 router.post('/signup', (req, res) => {
     if(!req.body.username || !req.body.password){
         res.json({success: false, msg: 'Please include both username and password to signup.'})
@@ -56,10 +46,10 @@ router.post('/signup', (req, res) => {
 
         user.save((err) => {
             if(err){
-                if(err.code == 11000){
+                if(err.code === 11000){
                     return res.json({success: false, message: 'A user with that username already exists. '});
                 }else{
-                    return res.json(err);
+                    return res.json({success: false, error:err});
                 }
             }
             res.json({success: true, msg: 'Successfully created new user.'});
@@ -82,7 +72,7 @@ router.post('/signin', (req, res) => {
         }
         user.comparePassword(userNew.password, (isMatch) =>{
             if (isMatch){
-                let userToken = {id: user.id, username: user.username};
+                let userToken = {name: user.name, username: user.username};
                 let token = jwt.sign(userToken, process.env.SECRET_KEY);
                 res.json({success: true, token: 'JWT ' + token}); // use this for JWT a.b.c token
                 // res.json({success: true, token: token}); // use this for Bearer token
@@ -94,42 +84,54 @@ router.post('/signin', (req, res) => {
 });
 
 router.route('/movies')
-    .get((req, res) =>{
-        res.status(200);
-        let obj = getJSONobject(req);
-        obj.status = res.statusCode;
-        obj.msg = 'Get Movies';
-        res.json(obj);
+    .get(jwtAuthController.isAuthenticated, (req, res) => {
+        Movie.find({}, (err, movies) => {
+            if (err){
+                return res.json({success: false, error:err});
+            }
+            return res.status(200).send({success:true, movies:movies});
+        });
+    })
+    .post(jwtAuthController.isAuthenticated, (req, res) => {
+        let movie = new Movie();
+        let actorList = getActors(req);
 
+        movie.title = req.body.title;
+        movie.releaseDate = new Date(req.body.releaseDate);
+        movie.genre = req.body.genre;
+        movie.actors = actorList;
+
+        movie.save((err) => {
+            if(err){
+                return res.send({success: false, error:err});
+            }
+            res.status(200).send({success: true, msg: 'Successfully saved new Movie.'});
+        });
     })
-    .post((req, res) =>{
-        res.status(200);
-        let obj = getJSONobject(req);
-        obj.status = res.statusCode;
-        obj.msg = 'Movie Saved';
-        res.json(obj);
+    .put(jwtAuthController.isAuthenticated, (req, res) => {
+        Movie.findOne({title: req.body.title}, (err, movie) => {
+            if (err){
+                return res.json({success: false, error:err});
+            }else{
+                let actorList = getActors(req);
+                // movie.title = req.body.title;
+                movie.releaseDate = new Date(req.body.releaseDate);
+                movie.genre = req.body.genre;
+                movie.actors = actorList;
+
+                movie.save();
+                res.status(200).send({success: true, msg: 'Successfully updated the Movie.'});
+            }
+        });
     })
-    .put(jwtAuthController.isAuthenticated, (req, res) =>{
-        console.log(req.body);
-        res.status(200);
-        if(req.get('Content-Type')){
-            res.type(req.get('Content-Type'));
-        }
-        let obj = getJSONobject(req);
-        obj.status = res.statusCode;
-        obj.msg = 'Movie Updated';
-        res.json(obj);
-    })
-    .delete(authController.isAuthenticated, (req, res) =>{
-        console.log(req.body);
-        res.status(200);
-        if(req.get('Content-Type')){
-            res.type(req.get('Content-Type'));
-        }
-        let obj = getJSONobject(req);
-        obj.status = res.statusCode;
-        obj.msg = 'Movie Deleted';
-        res.json(obj);
+    .delete(jwtAuthController.isAuthenticated, (req, res) => {
+        Movie.findOneAndDelete({title:req.body.title}, (err, movie) => {
+            if(err){
+                return res.json({success: false, error:err});
+            }
+            res.status(200);
+            res.json({success: true, msg:'Movie deleted successfully.', deleted: movie});
+        });
     });
 
 app.use('/', router);
