@@ -37,7 +37,7 @@ getActors = (req) => {
 }
 router.post('/signup', (req, res) => {
     if(!req.body.username || !req.body.password){
-        return res.json({success: false, msg: 'Please include both username and password to signup.'})
+        return res.status(400).json({success: false, msg: 'Please include both username and password to signup.'})
     }else{
         let user = new User();
         user.name = req.body.name;
@@ -47,19 +47,19 @@ router.post('/signup', (req, res) => {
         user.save((err) => {
             if(err){
                 if(err.code === 11000){
-                    return res.json({success: false, message: 'A user with that username already exists. '});
+                    return res.status(400).json({success: false, message: 'A user with that username already exists. '});
                 }else{
-                    return res.json({success: false, error:err});
+                    return res.status(400).json({success: false, error:err});
                 }
             }
-            return res.json({success: true, msg: 'Successfully created new user.'});
+            return res.status(200).json({success: true, msg: 'Successfully created new user.'});
         });
     }
 });
 
 router.post('/signin', (req, res) => {
     if(!req.body.username || !req.body.password){
-        return res.json({success: false, msg: 'Please include both username and password to sign in.'})
+        return res.status(400).json({success: false, msg: 'Please include both username and password to sign in.'})
     }
 
     let userNew = new User();
@@ -67,14 +67,14 @@ router.post('/signin', (req, res) => {
     userNew.password = req.body.password;
 
     User.findOne({username: userNew.username}).select('name username password').exec((err,user) =>{
-        if(err){
+        if(!user){
             return res.status(401).send({success: false, msg: 'User not found.'});
         }
         user.comparePassword(userNew.password, (isMatch) =>{
             if (isMatch){
                 let userToken = {name: user.name, username: user.username};
                 let token = jwt.sign(userToken, process.env.SECRET_KEY);
-                return res.json({success: true, token: 'JWT ' + token}); // use this for JWT a.b.c token
+                return res.status(200).json({success: true, token: 'JWT ' + token}); // use this for JWT a.b.c token
                 // res.json({success: true, token: token}); // use this for Bearer token
             }else{
                 return res.status(401).send({success: false, msg: 'Authentication Failed.'});
@@ -87,7 +87,7 @@ router.route('/movies')
     .get(jwtAuthController.isAuthenticated, (req, res) => {
         Movie.find({}, (err, movies) => {
             if (err){
-                return res.json({success: false, error:err});
+                return res.status(400).json({success: false, error:err});
             }
             return res.status(200).send({success:true, movies:movies});
         });
@@ -103,15 +103,15 @@ router.route('/movies')
 
         movie.save((err) => {
             if(err){
-                return res.send({success: false, error:err});
+                return res.status(400).send({success: false, error:err});
             }
             return res.status(200).send({success: true, msg: 'Successfully saved new Movie.'});
         });
     })
     .put(jwtAuthController.isAuthenticated, (req, res) => {
-        Movie.findOne({title: req.body.title}, (err, movie) => {
-            if (err){
-                return res.json({success: false, error:err});
+        Movie.findOne({title: req.body.title}, null, null,(err, movie) => {
+            if (!movie){
+                return res.status(400).json({success: false, error:'Movie not found.'});
             }else{
                 let actorList = getActors(req);
                 // movie.title = req.body.title;
@@ -119,15 +119,19 @@ router.route('/movies')
                 movie.genre = req.body.genre;
                 movie.actors = actorList;
 
-                movie.save();
+                movie.save((err) => {
+                    if(err){
+                        return res.status(400).send({success: false, error:err});
+                    }
+                });
                 return res.status(200).send({success: true, msg: 'Successfully updated the Movie.'});
             }
         });
     })
     .delete(jwtAuthController.isAuthenticated, (req, res) => {
-        Movie.findOneAndDelete({title:req.body.title}, (err, movie) => {
-            if(err){
-                return res.json({success: false, error:err});
+        Movie.findOneAndDelete({title:req.body.title}, null, (err, movie) => {
+            if(!movie){
+                return res.status(400).json({success: false, error:'Movie not found.'});
             }
             return res.status(200).json({success: true, msg:'Movie deleted successfully.', deleted: movie});
         });

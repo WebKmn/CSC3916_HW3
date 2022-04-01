@@ -12,8 +12,6 @@ opts.secretOrKey = process.env.SECRET_KEY;
     function(jwt_payload, done){
         User.find({username:jwt_payload.username}, (err, user) =>{
             if(err) {
-                console.log(jwt_payload);
-                console.log(user);
                 return done(null, false);
             }else{
                 return done(null, user);

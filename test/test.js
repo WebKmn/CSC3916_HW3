@@ -10,8 +10,13 @@ const User = require('../schemas/Users'),
 chai.should();
 chai.use(chaiHttp);
 
-let login_details = {
+let register_details = {
     name: 'test',
+    username: 'email@mail.com',
+    password: 'password'
+};
+
+let login_details = {
     username: 'email@mail.com',
     password: 'password'
 };
@@ -39,7 +44,7 @@ let movie_details = {
 let update_movie = {
     title: 'testMovie2',
     releaseDate: '2005-01-04',
-    genre: 'Thriller',
+    genre: 'Romance',
     actors: [
         {
             actorName: 'Actor1',
@@ -68,7 +73,7 @@ describe('signup sign in with JWT', () =>{
            // signup
             chai.request(server)
                 .post('/signup')
-                .send(login_details)
+                .send(register_details)
                 .end((err, res) => {
                    res.should.have.status(200);
                    res.body.success.should.eql(true);
