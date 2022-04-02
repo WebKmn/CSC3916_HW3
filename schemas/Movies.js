@@ -29,4 +29,9 @@ MovieSchema = new Schema({
     }
 });
 
+MovieSchema.methods.validateProperties = function() {
+    const movie = this;
+    return !(movie.releaseDate === null || movie.genre === '' || movie.actors.length < 3);
+};
+
 module.exports = mongoose.model('Movie', MovieSchema);

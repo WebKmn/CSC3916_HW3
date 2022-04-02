@@ -22,9 +22,9 @@ let login_details = {
 };
 
 let movie_details = {
-    title: 'testMovie5',
+    title: 'testMovie',
     releaseDate: '2011-05-10',
-    genre: 'Thriller',
+    genre: 'Drama',
     actors: [
         {
             actorName: 'Actor1',
@@ -42,24 +42,30 @@ let movie_details = {
 };
 
 let update_movie = {
-    title: 'testMovie2',
+    title: 'testMovie',
     releaseDate: '2005-01-04',
-    genre: 'Romance',
+    genre: 'Horror',
     actors: [
         {
-            actorName: 'Actor1',
-            characterName: 'Galaxy Man'
-        },
-        {
-            actorName: 'Actor2',
-            characterName: 'Pixel Man'
-        },
-        {
             actorName: 'Actor3',
-            characterName: 'No name Man'
+            characterName: 'Bruce'
+        },
+        {
+            actorName: 'Actor4',
+            characterName: 'IP Man'
+        },
+        {
+            actorName: 'Actor5',
+            characterName: 'No Man'
         }
     ]
 };
+
+/*
+* To properly run the test, comment out all blocks except for sign up, sign in
+* and the CRUD block running - uncomment done()
+* All test pass when run in this format
+*/
 
 describe('signup sign in with JWT', () =>{
     after((done) =>{
@@ -87,8 +93,7 @@ describe('signup sign in with JWT', () =>{
                            res.body.should.have.property('token');
                            let token = res.body.token;
 
-                           // use token for CRUD on movies routes
-                            // Creat and save a movie
+                           // use token for CRUD on movies routes - Create a Movie
                            chai.request(server)
                                .post('/movies')
                                .set('Authorization', token)
@@ -99,7 +104,7 @@ describe('signup sign in with JWT', () =>{
                                    // done();
                                });
 
-                            // Read and get all movies
+                            // Read all movies
                             chai.request(server)
                                 .get('/movies')
                                 .set('Authorization', token)
@@ -107,17 +112,6 @@ describe('signup sign in with JWT', () =>{
                                     res.should.have.status(200);
                                     res.body.success.should.eql(true);
                                     res.body.should.have.property('movies');
-                                    // done();
-                                });
-
-                            // Delete a movie
-                            chai.request(server)
-                                .delete('/movies')
-                                .set('Authorization', token)
-                                .send({title: 'testMovie5'})
-                                .end((err, res) => {
-                                    res.should.have.status(200);
-                                    res.body.success.should.eql(true);
                                     // done();
                                 });
 
@@ -129,6 +123,17 @@ describe('signup sign in with JWT', () =>{
                                 .end((err, res) => {
                                     res.should.have.status(200);
                                     res.body.success.should.eql(true);
+                                    // done();
+                                });
+
+                            // Delete a movie
+                            chai.request(server)
+                                .delete('/movies')
+                                .set('Authorization', token)
+                                .send({title: 'testMovie'})
+                                .end((err, res) => {
+                                    res.should.have.status(200);
+                                    res.body.success.should.eql(true);
                                     done();
                                 });
                         });
@@ -136,3 +141,4 @@ describe('signup sign in with JWT', () =>{
         });
     });
 });
+// Need to fix update movie validation of properties!

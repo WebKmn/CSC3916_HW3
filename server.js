@@ -103,7 +103,7 @@ router.route('/movies')
 
         movie.save((err) => {
             if(err){
-                return res.status(400).send({success: false, error:err});
+                return res.status(400).send({success: false, msg: 'Failed saved new Movie.'});
             }
             return res.status(200).send({success: true, msg: 'Successfully saved new Movie.'});
         });
@@ -115,16 +115,17 @@ router.route('/movies')
             }else{
                 let actorList = getActors(req);
                 // movie.title = req.body.title;
-                movie.releaseDate = new Date(req.body.releaseDate);
+                movie.releaseDate = (!req.body.releaseDate ? '': new Date(req.body.releaseDate));
                 movie.genre = req.body.genre;
                 movie.actors = actorList;
 
-                movie.save((err) => {
-                    if(err){
-                        return res.status(400).send({success: false, error:err});
-                    }
-                });
-                return res.status(200).send({success: true, msg: 'Successfully updated the Movie.'});
+                if(movie.validateProperties()){
+                    movie.save(() => {
+                        return res.status(200).send({success: true, msg: 'Successfully updated the Movie.'});
+                    });
+                } else {
+                    return res.status(400).send({success: false, msg: 'Failed to Update Movie'});
+                }
             }
         });
     })
