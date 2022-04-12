@@ -61,84 +61,98 @@ let update_movie = {
     ]
 };
 
-/*
-* To properly run the test, comment out all blocks except for sign up, sign in
-* and the CRUD block running - uncomment done()
-* All test pass when run in this format
-*/
-
-describe('signup sign in with JWT', () =>{
+describe('Server CRUD Testing', () =>{
     after((done) =>{
         User.deleteOne({name: 'test'}, (err) =>{
             if(err) throw err;
         })
         done();
     });
-    describe('/signup, /signin, CRUD - /movies',()=> {
-        it('signup, login,save token and use it on /movies', (done) => {
-           // signup
+
+    describe('Register',()=> {
+        it('Should signup a new User and save to DB.', (done) => {
+            // signup
             chai.request(server)
                 .post('/signup')
                 .send(register_details)
                 .end((err, res) => {
-                   res.should.have.status(200);
-                   res.body.success.should.eql(true);
+                    res.should.have.status(200);
+                    res.body.success.should.eql(true);
+                    done();
+                });
+        });
+    });
 
-                   // login and get Token
-                    chai.request(server)
-                        .post('/signin')
-                        .send(login_details)
-                        .end((err, res) => {
-                           res.should.have.status(200);
-                           res.body.should.have.property('token');
-                           let token = res.body.token;
+    describe('Sign in', () => {
+        it('Should login a saved User and save JWT Token.', (done) => {
+            // sign in
+            chai.request(server)
+                .post('/signin')
+                .send(login_details)
+                .end((err, res) => {
+                    res.should.have.status(200);
+                    res.body.should.have.property('token');
+                    this.token = res.body.token;
+                    done();
+                });
+        });
 
-                           // use token for CRUD on movies routes - Create a Movie
-                           chai.request(server)
-                               .post('/movies')
-                               .set('Authorization', token)
-                               .send(movie_details)
-                               .end((err, res) => {
-                                   res.should.have.status(200);
-                                   res.body.success.should.eql(true);
-                                   // done();
-                               });
+    });
 
-                            // Read all movies
-                            chai.request(server)
-                                .get('/movies')
-                                .set('Authorization', token)
-                                .end((err, res) => {
-                                    res.should.have.status(200);
-                                    res.body.success.should.eql(true);
-                                    res.body.should.have.property('movies');
-                                    // done();
-                                });
+    describe('Get Movies', () => {
+        it('Should get all Movies from DB.', (done) => {
+            // Read all movies
+            chai.request(server)
+                .get('/movies')
+                .set('Authorization', this.token)
+                .end((err, res) => {
+                    res.should.have.status(200);
+                    res.body.success.should.eql(true);
+                    res.body.should.have.property('movies');
+                    done();
+                });
+        });
+    });
 
-                            // Update a movie
-                            chai.request(server)
-                                .put('/movies')
-                                .set('Authorization', token)
-                                .send(update_movie)
-                                .end((err, res) => {
-                                    res.should.have.status(200);
-                                    res.body.success.should.eql(true);
-                                    // done();
-                                });
+    describe('Post Movie', ()=> {
+        it('Should post a new Movie to DB.', (done) => {
+            chai.request(server)
+                .post('/movies')
+                .set('Authorization', this.token)
+                .send(movie_details)
+                .end((err, res) => {
+                    res.should.have.status(200);
+                    res.body.success.should.eql(true);
+                    done();
+                });
+        });
+    });
 
-                            // Delete a movie
-                            chai.request(server)
-                                .delete('/movies')
-                                .set('Authorization', token)
-                                .send({title: 'testMovie'})
-                                .end((err, res) => {
-                                    res.should.have.status(200);
-                                    res.body.success.should.eql(true);
-                                    done();
-                                });
-                        });
+    describe('Update Movie', () => {
+        it('Should find and update a saved Movie in DB.', (done) => {
+            chai.request(server)
+                .put('/movies')
+                .set('Authorization', this.token)
+                .send(update_movie)
+                .end((err, res) => {
+                    res.should.have.status(200);
+                    res.body.success.should.eql(true);
+                    done();
+                });
+        });
+    });
+
+    describe('Delete Movie', () => {
+        it('Should find and delete a saved Movie in DB', (done) => {
+            chai.request(server)
+                .delete('/movies')
+                .set('Authorization', this.token)
+                .send({title: 'testMovie'})
+                .end((err, res) => {
+                    res.should.have.status(200);
+                    res.body.success.should.eql(true);
+                    done();
                 });
         });
     });
 });
-// Need to fix update movie validation of properties!
